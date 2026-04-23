@@ -1,4 +1,4 @@
-package main
+package bst
 
 import "fmt"
 
@@ -149,7 +149,7 @@ func (t *BST[K, V]) postOrder(n *Node[K, V], visit func(K, V)) {
 	visit(n.key, n.value)
 }
 
-func StartTask1() {
+func StartBST() {
 	intTree := NewBST[int, string](func(a, b int) int {
 		return a - b
 	})
