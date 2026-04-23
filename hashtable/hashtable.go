@@ -119,41 +119,41 @@ func hashString(key string) uint64 {
 func StartHashTable() {
 	ht := NewHashTable[string, int](4, hashString)
 
-	var wg1, wg2, wg3 sync.WaitGroup
+	var wg sync.WaitGroup
 
 	for i := 0; i < 10; i++ {
-		wg1.Add(1)
+		wg.Add(1)
 		go func(id int) {
-			defer wg1.Done()
+			defer wg.Done()
 			key := fmt.Sprintf("key-%d", id)
 			ht.Insert(key, id*10)
 		}(i)
 	}
-	wg1.Wait()
+	wg.Wait()
 
 	for i := 0; i < 10; i++ {
-		wg2.Add(1)
+		wg.Add(1)
 		go func(id int) {
-			defer wg2.Done()
+			defer wg.Done()
 			key := fmt.Sprintf("key-%d", id)
 			if val, ok := ht.Get(key); ok {
 				fmt.Printf("[Чтение] %s -> %d\n", key, val)
 			}
 		}(i)
 	}
-	wg2.Wait()
+	wg.Wait()
 
 	for i := 0; i < 5; i++ {
-		wg3.Add(1)
+		wg.Add(1)
 		go func(id int) {
-			defer wg3.Done()
+			defer wg.Done()
 			key := fmt.Sprintf("key-%d", id)
 			if ht.Delete(key) {
 				fmt.Printf("[Удаление] %s удалён успешно\n", key)
 			}
 		}(i)
 	}
-	wg3.Wait()
+	wg.Wait()
 
 	fmt.Printf("\nИтоговый размер таблицы: %d\n", ht.Size())
 }
