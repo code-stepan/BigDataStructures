@@ -7,6 +7,7 @@ import (
 	"github.com/code-stepan/BigDataStructures/bloomfilter"
 	"github.com/code-stepan/BigDataStructures/bst"
 	"github.com/code-stepan/BigDataStructures/btree"
+	"github.com/code-stepan/BigDataStructures/hashtable"
 	"github.com/code-stepan/BigDataStructures/trie"
 )
 
@@ -37,6 +38,7 @@ func main() {
 		case 4:
 			trie.StartTrie()
 		case 5:
+			hashtable.StartHashTable()
 		case 6:
 		case 7:
 		case 8:
