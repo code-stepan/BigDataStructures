@@ -149,7 +149,7 @@ func (t *BST[K, V]) postOrder(n *Node[K, V], visit func(K, V)) {
 	visit(n.key, n.value)
 }
 
-func StartBST() {
+func Start() {
 	intTree := NewBST[int, string](func(a, b int) int {
 		return a - b
 	})

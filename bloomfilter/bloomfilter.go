@@ -2,66 +2,71 @@ package bloomfilter
 
 import (
 	"fmt"
-	"hash/fnv"
+	"hash"
+	"math"
+	"sync"
 )
 
 type BloomFilter struct {
-	size uint64
-	k    uint64
-	bits []byte
+	bitSet []bool
+	m      uint64 // количество битов в наборе типов
+	hashes []hash.Hash64
+	k      uint64 // количество исспользуемых хэш функций
+	mutex  sync.Mutex
 }
 
-func NewBloomFilter(sizeBits, k uint64) *BloomFilter {
-	if sizeBits == 0 || k == 0 {
-		panic("sizeBits и k должны быть больше 0")
+func NewBloomFilter(n uint64, p float64, h Hasher) (*BloomFilter, error) {
+	if n == 0 {
+		return nil, fmt.Errorf("количество элементов не может быть 0")
 	}
+	if p <= 0 || p >= 1 {
+		return nil, fmt.Errorf("ложно позитивная вероятность должнать быть в пределах от 0 до 1")
+	}
+	if h == nil {
+		return nil, fmt.Errorf("hasher не может быть равен nil")
+	}
+	m, k := optimalParams(n, p)
 	return &BloomFilter{
-		size: sizeBits,
-		k:    k,
-		bits: make([]byte, (sizeBits+7)/8),
+		m:      m,
+		k:      k,
+		bitSet: make([]bool, m),
+		hashes: h.GetHashes(k),
+	}, nil
+}
+
+func optimalParams(n uint64, p float64) (uint64, uint64) {
+	m := uint64(math.Ceil(-1 * float64(n) * math.Log(p) / math.Pow(math.Log(2), 2)))
+	if m == 0 {
+		m = 1
 	}
+	k := uint64(math.Ceil((float64(m) / float64(n)) * math.Log(2)))
+	if k == 0 {
+		k = 1
+	}
+	return m, k
 }
 
 func (bf *BloomFilter) Add(data []byte) {
-	h1, h2 := bf.gatBaseHashes(data)
-	for i := uint64(0); i < bf.k; i++ {
-		pos := (h1 + i*h2) % bf.size
-		byteIdx := pos / 8
-		bitIdx := pos % 8
-		bf.bits[byteIdx] |= (1 << bitIdx)
+	bf.mutex.Lock()
+	defer bf.mutex.Unlock()
+	for _, hash := range bf.hashes {
+		hash.Reset()
+		hash.Write(data)
+		hashValue := hash.Sum64() % bf.m
+		bf.bitSet[hashValue] = true
 	}
 }
 
 func (bf *BloomFilter) Test(data []byte) bool {
-	h1, h2 := bf.gatBaseHashes(data)
-	for i := uint64(0); i < bf.k; i++ {
-		pos := (h1 + i*h2) % bf.size
-		byteIdx := pos / 8
-		bitIdx := pos % 8
-		if bf.bits[byteIdx]&(1<<bitIdx) == 0 {
+	bf.mutex.Lock()
+	defer bf.mutex.Unlock()
+	for _, hash := range bf.hashes {
+		hash.Reset()
+		hash.Write(data)
+		hashValue := hash.Sum64() % bf.m
+		if !bf.bitSet[hashValue] {
 			return false
 		}
 	}
 	return true
-}
-
-func (bf *BloomFilter) gatBaseHashes(data []byte) (uint64, uint64) {
-	h := fnv.New64a()
-	_, _ = h.Write(data)
-	hash := h.Sum64()
-	return hash, hash >> 32
-}
-
-func StartBloomFilter() {
-	bf := NewBloomFilter(1024, 3)
-
-	bf.Add([]byte("hello"))
-	bf.Add([]byte("world"))
-	bf.Add([]byte("golang"))
-	bf.Add([]byte("filter"))
-
-	fmt.Println("'hello' присутствует:", bf.Test([]byte("hello")))
-	fmt.Println("'world' присутствует:", bf.Test([]byte("world")))
-	fmt.Println("'golang' присутствует:", bf.Test([]byte("golang")))
-	fmt.Println("'python' присутствует:", bf.Test([]byte("python")))
 }

@@ -88,7 +88,7 @@ func (t *Trie[V]) deleteHelper(curr *node[V], runes []rune, depth int) bool {
 	return false
 }
 
-func StartTrie() {
+func Start() {
 	alphabet := make([]rune, 0, 26)
 	for c := 'a'; c <= 'z'; c++ {
 		alphabet = append(alphabet, c)
