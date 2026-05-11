@@ -1,7 +1,5 @@
 package bst
 
-import "fmt"
-
 type Node[K any, V any] struct {
 	key   K
 	value V
@@ -14,7 +12,7 @@ type BST[K any, V any] struct {
 	compare func(a, b K) int
 }
 
-func NewBST[K any, V any](cmp func(a, b K) int) *BST[K, V] {
+func New[K any, V any](cmp func(a, b K) int) *BST[K, V] {
 	return &BST[K, V]{
 		compare: cmp,
 	}
@@ -147,46 +145,4 @@ func (t *BST[K, V]) postOrder(n *Node[K, V], visit func(K, V)) {
 	t.postOrder(n.left, visit)
 	t.postOrder(n.right, visit)
 	visit(n.key, n.value)
-}
-
-func Start() {
-	intTree := NewBST[int, string](func(a, b int) int {
-		return a - b
-	})
-
-	intTree.Insert(50, "fifty")
-	intTree.Insert(30, "thirty")
-	intTree.Insert(70, "seventy")
-	intTree.Insert(20, "twenty")
-	intTree.Insert(40, "forty")
-	intTree.Insert(60, "sixty")
-	intTree.Insert(80, "eighty")
-
-	// Поиск
-	if val, ok := intTree.Get(40); ok {
-		fmt.Println("Найдено: ", val)
-	}
-
-	// Удаление
-	deleted := intTree.Delete(50)
-	fmt.Println("Удалние: ", deleted)
-
-	// Обходы
-	fmt.Println("PreOrder: ")
-	intTree.PreOrder(func(k int, v string) {
-		fmt.Printf("%d(%s) ", k, v)
-	})
-	fmt.Println()
-
-	fmt.Println("InOrder: ")
-	intTree.InOrder(func(k int, v string) {
-		fmt.Printf("%d(%s) ", k, v)
-	})
-	fmt.Println()
-
-	fmt.Println("PostOrder: ")
-	intTree.PostOrder(func(k int, v string) {
-		fmt.Printf("%d(%s) ", k, v)
-	})
-	fmt.Println()
 }

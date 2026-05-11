@@ -1,159 +1,90 @@
 package hashtable
 
 import (
-	"fmt"
-	"sync"
+	"errors"
 )
 
-type Node[K comparable, V any] struct {
-	Key   K
-	Value V
-	Next  *Node[K, V]
+type entry[K comparable, V any] struct {
+	key   K
+	value V
+	next  *entry[K, V]
 }
 
-type HashTable[K comparable, V any] struct {
-	mu       sync.RWMutex
-	buckets  []*Node[K, V]
+type HashMap[K comparable, V any] struct {
+	buckets  []*entry[K, V]
 	size     int
 	capacity int
 	hashFunc func(K) uint64
 }
 
-func NewHashTable[K comparable, V any](capacity int, hashFunc func(K) uint64) *HashTable[K, V] {
+func New[K comparable, V any](capacity int, hashFunc func(K) uint64) (*HashMap[K, V], error) {
 	if capacity <= 0 {
-		capacity = 16
+		return nil, errors.New("capacity должно быть больше 0")
 	}
 	if hashFunc == nil {
-		panic("нет hash func")
+		return nil, errors.New("не определена hashFunc")
 	}
-	return &HashTable[K, V]{
-		buckets:  make([]*Node[K, V], capacity),
+	return &HashMap[K, V]{
+		buckets:  make([]*entry[K, V], capacity),
 		capacity: capacity,
 		hashFunc: hashFunc,
-	}
+	}, nil
 }
 
-func (ht *HashTable[K, V]) Insert(key K, value V) {
-	ht.mu.Lock()
-	defer ht.mu.Unlock()
+func (h *HashMap[K, V]) index(key K) int {
+	return int(h.hashFunc(key) % uint64(h.capacity))
+}
 
-	idx := ht.hashFunc(key) % uint64(ht.capacity)
-	head := ht.buckets[idx]
+func (h *HashMap[K, V]) Set(key K, value V) {
+	idx := h.index(key)
+	head := h.buckets[idx]
 
-	for curr := head; curr != nil; curr = curr.Next {
-		if curr.Key == key {
-			curr.Value = value
+	for e := head; e != nil; e = e.next {
+		if e.key == key {
+			e.value = value
 			return
 		}
 	}
 
-	ht.buckets[idx] = &Node[K, V]{
-		Key:   key,
-		Value: value,
-		Next:  head,
+	h.buckets[idx] = &entry[K, V]{
+		key:   key,
+		value: value,
+		next:  head,
 	}
-	ht.size++
+	h.size++
 }
 
-func (ht *HashTable[K, V]) Get(key K) (V, bool) {
-	ht.mu.RLock()
-	defer ht.mu.RUnlock()
-
-	idx := ht.hashFunc(key) % uint64(ht.capacity)
-	var zero V
-
-	for curr := ht.buckets[idx]; curr != nil; curr = curr.Next {
-		if curr.Key == key {
-			return curr.Value, true
+func (h *HashMap[K, V]) Get(key K) (V, bool) {
+	idx := h.index(key)
+	for e := h.buckets[idx]; e != nil; e = e.next {
+		if e.key == key {
+			return e.value, true
 		}
 	}
+	var zero V
 	return zero, false
 }
 
-func (ht *HashTable[K, V]) Delete(key K) bool {
-	ht.mu.Lock()
-	defer ht.mu.Unlock()
+func (h *HashMap[K, V]) Delete(key K) bool {
+	idx := h.index(key)
+	head := h.buckets[idx]
+	var prev *entry[K, V]
 
-	idx := ht.hashFunc(key) % uint64(ht.capacity)
-	head := ht.buckets[idx]
-
-	if head == nil {
-		return false
-	}
-
-	if head.Key == key {
-		ht.buckets[idx] = head.Next
-		ht.size--
-		return true
-	}
-
-	for curr := head; curr.Next != nil; curr = curr.Next {
-		if curr.Next.Key == key {
-			curr.Next = curr.Next.Next
-			ht.size--
+	for e := head; e != nil; e = e.next {
+		if e.key == key {
+			if prev == nil {
+				h.buckets[idx] = e.next
+			} else {
+				prev.next = e.next
+			}
+			h.size--
 			return true
 		}
+		prev = e
 	}
 	return false
 }
 
-func (ht *HashTable[K, V]) Size() int {
-	ht.mu.RLock()
-	defer ht.mu.RUnlock()
-	return ht.size
-}
-
-func hashString(key string) uint64 {
-	const (
-		offset = 14695981039346656037
-		prime  = 1099511628211
-	)
-	var hash uint64 = offset
-	for i := 0; i < len(key); i++ {
-		hash ^= uint64(key[i])
-		hash *= prime
-	}
-	return hash
-}
-
-func StartHashTable() {
-	ht := NewHashTable[string, int](4, hashString)
-
-	var wg sync.WaitGroup
-
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
-			key := fmt.Sprintf("key-%d", id)
-			ht.Insert(key, id*10)
-		}(i)
-	}
-	wg.Wait()
-
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
-			key := fmt.Sprintf("key-%d", id)
-			if val, ok := ht.Get(key); ok {
-				fmt.Printf("[Чтение] %s -> %d\n", key, val)
-			}
-		}(i)
-	}
-	wg.Wait()
-
-	for i := 0; i < 5; i++ {
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
-			key := fmt.Sprintf("key-%d", id)
-			if ht.Delete(key) {
-				fmt.Printf("[Удаление] %s удалён успешно\n", key)
-			}
-		}(i)
-	}
-	wg.Wait()
-
-	fmt.Printf("\nИтоговый размер таблицы: %d\n", ht.Size())
+func (h *HashMap[K, V]) Len() int {
+	return h.size
 }
