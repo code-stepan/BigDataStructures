@@ -1,4 +1,4 @@
-package fwnwicktree
+package fenwicktree
 
 type Monoid[T any] struct {
 	Identity T
