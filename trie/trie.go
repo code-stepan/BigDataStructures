@@ -1,124 +1,113 @@
 package trie
 
-import "fmt"
-
 type node[V any] struct {
-	children map[rune]*node[V]
+	children []*node[V]
 	value    V
-	hasValue bool
+	isEnd    bool
 }
 
 type Trie[V any] struct {
 	root    *node[V]
-	allowed map[rune]struct{}
+	chars   []rune
+	indexOf map[rune]int
 }
 
-func NewTrie[V any](alphabet []rune) *Trie[V] {
-	t := &Trie[V]{
-		root: &node[V]{
-			children: make(map[rune]*node[V]),
-		},
+func New[V any](alphabet string) *Trie[V] {
+	chars := make([]rune, 0, len(alphabet))
+	indexOf := make(map[rune]int, len(alphabet))
+	for i, ch := range alphabet {
+		chars = append(chars, ch)
+		indexOf[ch] = i
 	}
-	if len(alphabet) > 0 {
-		t.allowed = make(map[rune]struct{}, len(alphabet))
-		for _, r := range alphabet {
-			t.allowed[r] = struct{}{}
-		}
+	return &Trie[V]{
+		root:    &node[V]{children: make([]*node[V], len(alphabet))},
+		chars:   chars,
+		indexOf: indexOf,
 	}
-	return t
 }
 
-func (t *Trie[V]) Insert(key string, value V) error {
-	curr := t.root
+func (t *Trie[V]) Insert(key string, value V) {
+	cur := t.root
 	for _, ch := range key {
-		if t.allowed != nil {
-			if _, ok := t.allowed[ch]; !ok {
-				return fmt.Errorf("Символ %q отсутствует в настроенном алфавите", ch)
-			}
-		}
-		if _, ok := curr.children[ch]; !ok {
-			curr.children[ch] = &node[V]{
-				children: make(map[rune]*node[V]),
-			}
-		}
-		curr = curr.children[ch]
-	}
-	curr.value = value
-	curr.hasValue = true
-	return nil
-}
-
-func (t *Trie[V]) Search(key string) (V, bool) {
-	curr := t.root
-	for _, ch := range key {
-		child, ok := curr.children[ch]
+		idx, ok := t.indexOf[ch]
 		if !ok {
+			panic("trie: symbol not in alphabet")
+		}
+		if cur.children[idx] == nil {
+			cur.children[idx] = &node[V]{children: make([]*node[V], len(t.chars))}
+		}
+		cur = cur.children[idx]
+	}
+	cur.value = value
+	cur.isEnd = true
+}
+
+func (t *Trie[V]) Get(key string) (V, bool) {
+	cur := t.root
+	for _, ch := range key {
+		idx, ok := t.indexOf[ch]
+		if !ok || cur.children[idx] == nil {
 			var zero V
 			return zero, false
 		}
-		curr = child
+		cur = cur.children[idx]
 	}
-	return curr.value, curr.hasValue
+	if !cur.isEnd {
+		var zero V
+		return zero, false
+	}
+	return cur.value, true
+}
+
+func (t *Trie[V]) StartsWith(prefix string) bool {
+	cur := t.root
+	for _, ch := range prefix {
+		idx, ok := t.indexOf[ch]
+		if !ok || cur.children[idx] == nil {
+			return false
+		}
+		cur = cur.children[idx]
+	}
+	return true
 }
 
 func (t *Trie[V]) Delete(key string) bool {
-	runes := []rune(key)
-	return t.deleteHelper(t.root, runes, 0)
-}
-
-func (t *Trie[V]) deleteHelper(curr *node[V], runes []rune, depth int) bool {
-	if depth == len(runes) {
-		if !curr.hasValue {
-			return false
-		}
-		curr.hasValue = false
-		return len(curr.children) == 0
-	}
-
-	ch := runes[depth]
-	child, ok := curr.children[ch]
-	if !ok {
+	if _, ok := t.Get(key); !ok {
 		return false
 	}
-
-	if t.deleteHelper(child, runes, depth+1) {
-		delete(curr.children, ch)
-		return !curr.hasValue && len(curr.children) == 0
+	runes := []rune(key)
+	indices := make([]int, len(runes))
+	cur := t.root
+	for i, ch := range runes {
+		indices[i] = t.indexOf[ch]
+		cur = cur.children[indices[i]]
 	}
-	return false
+	cur.isEnd = false
+
+	for i := len(runes) - 1; i >= 0; i-- {
+		parent := t.root
+		for j := 0; j < i; j++ {
+			parent = parent.children[indices[j]]
+		}
+		child := parent.children[indices[i]]
+		if !child.isEnd && allNil(child.children) {
+			parent.children[indices[i]] = nil
+		} else {
+			break
+		}
+	}
+	return true
 }
 
-func Start() {
-	alphabet := make([]rune, 0, 26)
-	for c := 'a'; c <= 'z'; c++ {
-		alphabet = append(alphabet, c)
+func allNil[V any](nodes []*node[V]) bool {
+	for _, n := range nodes {
+		if n != nil {
+			return false
+		}
 	}
-	trie := NewTrie[string](alphabet)
+	return true
+}
 
-	_ = trie.Insert("apple", "🍎")
-	_ = trie.Insert("app", "📱")
-	_ = trie.Insert("bat", "🦇")
-
-	if val, ok := trie.Search("apple"); ok {
-		fmt.Printf("apple: %s\n", val)
-	}
-	if _, ok := trie.Search("apricot"); !ok {
-		fmt.Println("apricot: не найдено")
-	}
-
-	fmt.Println("\nУдаляем ключ 'app'...")
-	removed := trie.Delete("app")
-	fmt.Printf("Удалено успешно: %v\n", removed)
-
-	if _, ok := trie.Search("app"); !ok {
-		fmt.Println("app: больше не найден (удалён)")
-	}
-	if val, ok := trie.Search("apple"); ok {
-		fmt.Printf("apple: %s (остался в дереве)\n", val)
-	}
-
-	err := trie.Insert("123", "число")
-	if err != nil {
-		fmt.Printf("\nОшибка вставки: %v\n", err)
-	}
+func (t *Trie[V]) Clear() {
+	t.root = &node[V]{children: make([]*node[V], len(t.chars))}
 }

@@ -6,7 +6,9 @@ import (
 
 	"github.com/code-stepan/BigDataStructures/bloomfilter"
 	"github.com/code-stepan/BigDataStructures/bst"
+	"github.com/code-stepan/BigDataStructures/countminsketch"
 	"github.com/code-stepan/BigDataStructures/hashtable"
+	"github.com/code-stepan/BigDataStructures/trie"
 )
 
 func main() {
@@ -40,16 +42,13 @@ func main() {
 			intTree.Insert(60, "sixty")
 			intTree.Insert(80, "eighty")
 
-			// Поиск
 			if val, ok := intTree.Get(40); ok {
 				fmt.Println("Найдено: ", val)
 			}
 
-			// Удаление
 			deleted := intTree.Delete(50)
 			fmt.Println("Удалние: ", deleted)
 
-			// Обходы
 			fmt.Println("PreOrder: ")
 			intTree.PreOrder(func(k int, v string) {
 				fmt.Printf("%d(%s) ", k, v)
@@ -84,6 +83,30 @@ func main() {
 			fmt.Println(bf.Test([]byte("ddjdghf")))
 		case 4:
 			// trie
+			t := trie.New[string]("abcdefghijklmnopqrstuvwxyz")
+			t.Insert("hello", "привет")
+			t.Insert("world", "мир")
+			t.Insert("help", "помощь")
+			t.Insert("heap", "куча")
+
+			if val, ok := t.Get("hello"); ok {
+				fmt.Println("Найдено hello:", val)
+			}
+			if val, ok := t.Get("world"); ok {
+				fmt.Println("Найдено world:", val)
+			}
+
+			fmt.Println("StartsWith he:", t.StartsWith("he"))
+			fmt.Println("StartsWith xyz:", t.StartsWith("xyz"))
+
+			if t.Delete("help") {
+				fmt.Println("help удален")
+			}
+			if val, ok := t.Get("help"); ok {
+				fmt.Println("Get help после удаления:", val)
+			} else {
+				fmt.Println("help не найден")
+			}
 		case 5:
 			// hashtable
 			h, err := hashtable.New[string, int](8, func(s string) uint64 {
@@ -112,7 +135,19 @@ func main() {
 			}
 			fmt.Printf("Размер: %d\n", h.Len())
 		case 6:
-			// Count min sketch
+			// count min sketch
+			cms := countminsketch.New(0.01, 0.01)
+			cms.Add([]byte("apple"))
+			cms.Add([]byte("banana"))
+			cms.Add([]byte("apple"))
+			cms.Add([]byte("apple"))
+			cms.Add([]byte("banana"))
+			cms.Add([]byte("cherry"))
+
+			fmt.Printf("apple count: %d\n", cms.Count([]byte("apple")))
+			fmt.Printf("banana count: %d\n", cms.Count([]byte("banana")))
+			fmt.Printf("cherry count: %d\n", cms.Count([]byte("cherry")))
+			fmt.Printf("unknown count: %d\n", cms.Count([]byte("unknown")))
 		case 7:
 			// segment tree
 		case 8:
