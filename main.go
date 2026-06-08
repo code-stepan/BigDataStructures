@@ -8,6 +8,7 @@ import (
 	"github.com/code-stepan/BigDataStructures/bst"
 	"github.com/code-stepan/BigDataStructures/countminsketch"
 	"github.com/code-stepan/BigDataStructures/euler"
+	"github.com/code-stepan/BigDataStructures/fenwicktree"
 	"github.com/code-stepan/BigDataStructures/hashtable"
 	"github.com/code-stepan/BigDataStructures/heaps"
 	"github.com/code-stepan/BigDataStructures/trie"
@@ -27,7 +28,8 @@ var tasks = []task{
 	{"Binary Heap", demoBinaryHeap},
 	{"Binomial Heap", demoBinomialHeap},
 	{"Эйлер / ДПФ", demoEuler},
-	{"Z_n корни / FFT", demoZRoots},
+	// {"Z_n корни / FFT", demoZRoots},
+	{"Дерево Фенвика", demoFenwickTree},
 }
 
 func main() {
@@ -274,37 +276,67 @@ func printVector(label string, v []complex128) {
 	fmt.Println()
 }
 
-func demoZRoots() {
-	for _, n := range []int{5, 7, 10, 14, 15} {
-		fmt.Printf("n=%d: HasPrimitiveRoot=%v", n, euler.HasPrimitiveRoot(n))
-		if g, ok := euler.FindPrimitiveRoot(n); ok {
-			fmt.Printf(", one root=%d, all=%v", g, euler.PrimitiveRootsModN(n))
-		}
-		fmt.Println()
+// func demoZRoots() {
+// 	for _, n := range []int{5, 7, 10, 14, 15} {
+// 		fmt.Printf("n=%d: HasPrimitiveRoot=%v", n, euler.HasPrimitiveRoot(n))
+// 		if g, ok := euler.FindPrimitiveRoot(n); ok {
+// 			fmt.Printf(", one root=%d, all=%v", g, euler.PrimitiveRootsModN(n))
+// 		}
+// 		fmt.Println()
+// 	}
+
+// 	n := 7
+// 	fmt.Printf("\n=== Вандрмонда %dx%d (через Z_%d корень) ===\n", n, n, n)
+// 	printMatrix(euler.VandermondeMatrix(n))
+
+// 	fmt.Printf("\n=== DFT + обратное ===\n")
+// 	input := make([]complex128, n)
+// 	for i := range input {
+// 		input[i] = complex(float64(i+1), 0)
+// 	}
+// 	printVector("Вход", input)
+// 	dftResult := euler.DFT(input)
+// 	printVector("DFT", dftResult)
+// 	printVector("Обратное", euler.InverseDFT(dftResult))
+
+// 	fmt.Printf("\n=== FFT (Cooley-Tukey) ===\n")
+// 	fftSize := 8
+// 	fftInput := make([]complex128, fftSize)
+// 	for i := range fftInput {
+// 		fftInput[i] = complex(float64(i+1), 0)
+// 	}
+// 	printVector("Вход", fftInput)
+// 	fftResult := euler.FFT(fftInput)
+// 	printVector("FFT", fftResult)
+// 	printVector("Обратное FFT", euler.InverseFFT(fftResult))
+// }
+
+func demoFenwickTree() {
+	n := 10
+	sum := func(a, b int) int { return a + b }
+	sub := func(a, b int) int { return a - b }
+	ft := fenwicktree.New(n, sum, sub, 0)
+
+	values := []int{1, 3, 5, 7, 9, 11, 13, 15, 17, 19}
+	for i, v := range values {
+		ft.Update(i, v)
 	}
 
-	n := 7
-	fmt.Printf("\n=== Вандрмонда %dx%d (через Z_%d корень) ===\n", n, n, n)
-	printMatrix(euler.VandermondeMatrix(n))
+	fmt.Println("=== Дерево Фенвика (сумма) ===")
+	fmt.Printf("Массив: %v\n", values)
 
-	fmt.Printf("\n=== DFT + обратное ===\n")
-	input := make([]complex128, n)
-	for i := range input {
-		input[i] = complex(float64(i+1), 0)
+	fmt.Println("\nПрефиксные суммы:")
+	for i := range n {
+		fmt.Printf("  sum[0..%d] = %d\n", i, ft.Query(i))
 	}
-	printVector("Вход", input)
-	dftResult := euler.DFT(input)
-	printVector("DFT", dftResult)
-	printVector("Обратное", euler.InverseDFT(dftResult))
 
-	fmt.Printf("\n=== FFT (Cooley-Tukey) ===\n")
-	fftSize := 8
-	fftInput := make([]complex128, fftSize)
-	for i := range fftInput {
-		fftInput[i] = complex(float64(i+1), 0)
+	fmt.Println("\nИнтервальные суммы:")
+	ranges := [][2]int{{0, 4}, {2, 7}, {5, 9}, {0, 9}}
+	for _, r := range ranges {
+		fmt.Printf("  sum[%d..%d] = %d\n", r[0], r[1], ft.RangeQuery(r[0], r[1]))
 	}
-	printVector("Вход", fftInput)
-	fftResult := euler.FFT(fftInput)
-	printVector("FFT", fftResult)
-	printVector("Обратное FFT", euler.InverseFFT(fftResult))
+
+	fmt.Println("\nОбновление: установить значение 10 в позиции 3")
+	ft.Update(3, 10)
+	fmt.Printf("  sum[0..4] = %d (ожидается 1+3+5+10+9 = 28)\n", ft.RangeQuery(0, 4))
 }
