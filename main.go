@@ -7,156 +7,268 @@ import (
 	"github.com/code-stepan/BigDataStructures/bloomfilter"
 	"github.com/code-stepan/BigDataStructures/bst"
 	"github.com/code-stepan/BigDataStructures/countminsketch"
+	"github.com/code-stepan/BigDataStructures/euler"
 	"github.com/code-stepan/BigDataStructures/hashtable"
+	"github.com/code-stepan/BigDataStructures/heaps"
 	"github.com/code-stepan/BigDataStructures/trie"
 )
 
-func main() {
-	var inputString string
-	for {
-		fmt.Print("\nВыбор задачи(от 1 до 8)[используйте 0 для выхода] \n >> ")
-		fmt.Scan(&inputString)
+type task struct {
+	name string
+	fn   func()
+}
 
-		input, err := strconv.Atoi(inputString)
+var tasks = []task{
+	{"BST", demoBST},
+	{"Bloom Filter", demoBloomFilter},
+	{"Trie", demoTrie},
+	{"Hash Table", demoHashTable},
+	{"Count-Min Sketch", demoCountMinSketch},
+	{"Binary Heap", demoBinaryHeap},
+	{"Binomial Heap", demoBinomialHeap},
+	{"Эйлер / ДПФ", demoEuler},
+}
+
+func main() {
+	for {
+		fmt.Println("\n=== Меню задач ===")
+		for i, t := range tasks {
+			fmt.Printf("  %d. %s\n", i+1, t.name)
+		}
+		fmt.Println("  0. Выход")
+		fmt.Print(">> ")
+
+		input, err := strconv.Atoi(scan())
 		if err != nil {
 			fmt.Println("Некорректный ввод")
 			continue
 		}
-
 		if input == 0 {
 			break
 		}
 
-		switch input {
-		case 1:
-			// bst
-			intTree := bst.New[int, string](func(a, b int) int {
-				return a - b
-			})
-
-			intTree.Insert(50, "fifty")
-			intTree.Insert(30, "thirty")
-			intTree.Insert(70, "seventy")
-			intTree.Insert(20, "twenty")
-			intTree.Insert(40, "forty")
-			intTree.Insert(60, "sixty")
-			intTree.Insert(80, "eighty")
-
-			if val, ok := intTree.Get(40); ok {
-				fmt.Println("Найдено: ", val)
-			}
-
-			deleted := intTree.Delete(50)
-			fmt.Println("Удалние: ", deleted)
-
-			fmt.Println("PreOrder: ")
-			intTree.PreOrder(func(k int, v string) {
-				fmt.Printf("%d(%s) ", k, v)
-			})
-			fmt.Println()
-
-			fmt.Println("InOrder: ")
-			intTree.InOrder(func(k int, v string) {
-				fmt.Printf("%d(%s) ", k, v)
-			})
-			fmt.Println()
-
-			fmt.Println("PostOrder: ")
-			intTree.PostOrder(func(k int, v string) {
-				fmt.Printf("%d(%s) ", k, v)
-			})
-			fmt.Println()
-		case 2:
-			// btree
-		case 3:
-			// bloomfilter
-			hasher := bloomfilter.NewMurMur3Hasher()
-			bf, err := bloomfilter.NewBloomFilter(1000, 0.01, hasher)
-			if err != nil {
-				fmt.Printf("Ошибка BloomFilter: %v\n", err)
-				break
-			}
-			bf.Add([]byte("meme"))
-			bf.Add([]byte("mem"))
-			bf.Add([]byte("memes"))
-
-			fmt.Println(bf.Test([]byte("ddjdghf")))
-		case 4:
-			// trie
-			t := trie.New[string]("abcdefghijklmnopqrstuvwxyz")
-			t.Insert("hello", "привет")
-			t.Insert("world", "мир")
-			t.Insert("help", "помощь")
-			t.Insert("heap", "куча")
-
-			if val, ok := t.Get("hello"); ok {
-				fmt.Println("Найдено hello:", val)
-			}
-			if val, ok := t.Get("world"); ok {
-				fmt.Println("Найдено world:", val)
-			}
-
-			fmt.Println("StartsWith he:", t.StartsWith("he"))
-			fmt.Println("StartsWith xyz:", t.StartsWith("xyz"))
-
-			if t.Delete("help") {
-				fmt.Println("help удален")
-			}
-			if val, ok := t.Get("help"); ok {
-				fmt.Println("Get help после удаления:", val)
-			} else {
-				fmt.Println("help не найден")
-			}
-		case 5:
-			// hashtable
-			h, err := hashtable.New[string, int](8, func(s string) uint64 {
-				var hash uint64
-				for i := 0; i < len(s); i++ {
-					hash = hash*31 + uint64(s[i])
-				}
-				return hash
-			})
-			if err != nil {
-				panic(err)
-			}
-
-			h.Set("go", 1)
-			h.Set("rust", 2)
-			h.Set("zig", 3)
-
-			fmt.Printf("Размер: %d\n", h.Len())
-
-			if val, ok := h.Get("rust"); ok {
-				fmt.Printf("rust гайден: %d\n", val)
-			}
-
-			if h.Delete("go") {
-				fmt.Println("go удален")
-			}
-			fmt.Printf("Размер: %d\n", h.Len())
-		case 6:
-			// count min sketch
-			cms := countminsketch.New(0.01, 0.01)
-			cms.Add([]byte("apple"))
-			cms.Add([]byte("banana"))
-			cms.Add([]byte("apple"))
-			cms.Add([]byte("apple"))
-			cms.Add([]byte("banana"))
-			cms.Add([]byte("cherry"))
-
-			fmt.Printf("apple count: %d\n", cms.Count([]byte("apple")))
-			fmt.Printf("banana count: %d\n", cms.Count([]byte("banana")))
-			fmt.Printf("cherry count: %d\n", cms.Count([]byte("cherry")))
-			fmt.Printf("unknown count: %d\n", cms.Count([]byte("unknown")))
-		case 7:
-			// segment tree
-		case 8:
-			// Fenwick Tree
-		case 9:
-		case 10:
-		case 11:
-		default:
+		if input >= 1 && input <= len(tasks) {
+			tasks[input-1].fn()
+		} else {
 			fmt.Println("Некорректная задача")
 		}
 	}
+}
+
+func scan() string {
+	var s string
+	fmt.Scan(&s)
+	return s
+}
+
+func demoBST() {
+	tree := bst.New[int, string](func(a, b int) int { return a - b })
+
+	for _, v := range []int{50, 30, 70, 20, 40, 60, 80} {
+		tree.Insert(v, fmt.Sprintf("val_%d", v))
+	}
+
+	if val, ok := tree.Get(40); ok {
+		fmt.Println("Найдено 40:", val)
+	}
+
+	fmt.Println("Удаление 50:", tree.Delete(50))
+
+	fmt.Print("InOrder: ")
+	tree.InOrder(func(k int, v string) { fmt.Printf("%d(%s) ", k, v) })
+	fmt.Println()
+}
+
+func demoBloomFilter() {
+	hasher := bloomfilter.NewMurMur3Hasher()
+	bf, err := bloomfilter.NewBloomFilter(1000, 0.01, hasher)
+	if err != nil {
+		fmt.Printf("Ошибка: %v\n", err)
+		return
+	}
+
+	bf.Add([]byte("meme"))
+	bf.Add([]byte("mem"))
+	bf.Add([]byte("memes"))
+
+	fmt.Println("contains 'ddjdghf':", bf.Test([]byte("ddjdghf")))
+	fmt.Println("contains 'meme':", bf.Test([]byte("meme")))
+}
+
+func demoTrie() {
+	t := trie.New[string]("abcdefghijklmnopqrstuvwxyz")
+	t.Insert("hello", "привет")
+	t.Insert("world", "мир")
+	t.Insert("help", "помощь")
+	t.Insert("heap", "куча")
+
+	for _, word := range []string{"hello", "world"} {
+		if val, ok := t.Get(word); ok {
+			fmt.Printf("Найдено %s: %s\n", word, val)
+		}
+	}
+
+	fmt.Println("StartsWith 'he':", t.StartsWith("he"))
+	fmt.Println("StartsWith 'xyz':", t.StartsWith("xyz"))
+
+	t.Delete("help")
+	if _, ok := t.Get("help"); !ok {
+		fmt.Println("help удалён и не найден")
+	}
+}
+
+func demoHashTable() {
+	h, err := hashtable.New[string, int](8, func(s string) uint64 {
+		var hash uint64
+		for i := 0; i < len(s); i++ {
+			hash = hash*31 + uint64(s[i])
+		}
+		return hash
+	})
+	if err != nil {
+		fmt.Printf("Ошибка: %v\n", err)
+		return
+	}
+
+	h.Set("go", 1)
+	h.Set("rust", 2)
+	h.Set("zig", 3)
+
+	fmt.Printf("Размер: %d\n", h.Len())
+
+	if val, ok := h.Get("rust"); ok {
+		fmt.Printf("rust: %d\n", val)
+	}
+
+	h.Delete("go")
+	fmt.Printf("После удаления go, размер: %d\n", h.Len())
+}
+
+func demoCountMinSketch() {
+	cms := countminsketch.New(0.01, 0.01)
+	for _, word := range []string{"apple", "banana", "apple", "apple", "banana", "cherry"} {
+		cms.Add([]byte(word))
+	}
+
+	for _, word := range []string{"apple", "banana", "cherry", "unknown"} {
+		fmt.Printf("%s: %d\n", word, cms.Count([]byte(word)))
+	}
+}
+
+func demoBinaryHeap() {
+	bh := heaps.NewBinaryHeap[int, string](func(a, b int) int { return a - b })
+
+	items := []struct {
+		k int
+		v string
+	}{
+		{20, "двадцать"}, {50, "пятьдесят"}, {30, "тридцать"},
+		{10, "десять"}, {40, "сорок"},
+	}
+	for _, item := range items {
+		bh.Insert(item.k, item.v)
+	}
+
+	if k, v, ok := bh.Peek(); ok {
+		fmt.Printf("Max: %d (%s)\n", k, v)
+	}
+
+	fmt.Println("Извлечение:")
+	for !bh.IsEmpty() {
+		k, v, _ := bh.ExtractMax()
+		fmt.Printf("  %d (%s)\n", k, v)
+	}
+}
+
+func demoBinomialHeap() {
+	bn := heaps.NewBinomialHeap[int, string](func(a, b int) int { return a - b })
+	for _, item := range []struct {
+		k int
+		v string
+	}{
+		{20, "двадцать"}, {50, "пятьдесят"}, {30, "тридцать"},
+		{10, "десять"}, {40, "сорок"},
+	} {
+		bn.Insert(item.k, item.v)
+	}
+
+	if k, v, ok := bn.Peek(); ok {
+		fmt.Printf("Max: %d (%s)\n", k, v)
+	}
+
+	fmt.Println("Извлечение:")
+	for !bn.IsEmpty() {
+		k, v, _ := bn.ExtractMax()
+		fmt.Printf("  %d (%s)\n", k, v)
+	}
+
+	fmt.Println("\nСлияние двух куч:")
+	bn1 := heaps.NewBinomialHeap[int, string](func(a, b int) int { return a - b })
+	bn1.Insert(100, "сто")
+	bn1.Insert(5, "пять")
+
+	bn2 := heaps.NewBinomialHeap[int, string](func(a, b int) int { return a - b })
+	bn2.Insert(50, "пятьдесят")
+	bn2.Insert(25, "двадцать пять")
+
+	bn1.Merge(bn2)
+	fmt.Printf("Размер после слияния: %d\n", bn1.Len())
+
+	for !bn1.IsEmpty() {
+		k, v, _ := bn1.ExtractMax()
+		fmt.Printf("  %d (%s)\n", k, v)
+	}
+}
+
+func demoEuler() {
+	n := 12
+	fmt.Printf("=== Функция Эйлера φ(%d) ===\n", n)
+	fmt.Printf("По определению:  %d\n", euler.EulerPhiByDefinition(n))
+	fmt.Printf("Факторизация:    %d\n", euler.EulerPhiByFactorization(n))
+	fmt.Printf("Через ДПФ:       %.0f\n", euler.EulerPhiByDFT(n))
+	fmt.Printf("Множители:       %v\n", euler.Factorize(n))
+
+	nRoots := 6
+	fmt.Printf("\n=== Корни степени %d ===\n", nRoots)
+	for i, r := range euler.AllRootsOfUnity(nRoots) {
+		fmt.Printf("  z_%d = %.4f + %.4fi\n", i, r.Re, r.Im)
+	}
+
+	fmt.Printf("\n=== Первобразные корни ===\n")
+	for i, r := range euler.PrimitiveRootsOfUnity(nRoots) {
+		fmt.Printf("  ζ_%d = %.4f + %.4fi\n", i, r.Re, r.Im)
+	}
+
+	matSize := 4
+	fmt.Printf("\n=== Вандрмонда %dx%d ===\n", matSize, matSize)
+	printMatrix(euler.VandermondeMatrix(matSize))
+
+	fmt.Printf("\n=== Обратная Вандрмонда ===\n")
+	printMatrix(euler.InverseVandermondeMatrix(matSize))
+
+	fmt.Printf("\n=== ДПФ (прямое + обратное) ===\n")
+	input := make([]euler.Complex, matSize)
+	for i := range input {
+		input[i] = euler.NewComplex(float64(i+1), 0)
+	}
+	printVector("Вход", input)
+	printVector("ДПФ", euler.DFT(input))
+	printVector("Обратное", euler.InverseDFT(euler.DFT(input)))
+}
+
+func printMatrix(m [][]euler.Complex) {
+	for _, row := range m {
+		for _, v := range row {
+			fmt.Printf("(%6.3f+%6.3fi) ", v.Re, v.Im)
+		}
+		fmt.Println()
+	}
+}
+
+func printVector(label string, v []euler.Complex) {
+	fmt.Printf("%12s: ", label)
+	for _, x := range v {
+		fmt.Printf("(%.4f+%.4fi) ", x.Re, x.Im)
+	}
+	fmt.Println()
 }

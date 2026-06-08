@@ -8,21 +8,27 @@ type SegmentTree[T any] struct {
 }
 
 func New[T any](n int, op func(a, b T) T, id T) *SegmentTree[T] {
-	return &SegmentTree[T]{
-		n:    n,
-		tree: make([]T, 4*n),
-		op:   op,
-		id:   id,
+	tree := make([]T, n*4)
+	for i := range tree {
+		tree[i] = id
 	}
+	return &SegmentTree[T]{n: n, tree: tree, op: op, id: id}
 }
 
-func (st *SegmentTree[T]) Build(arr []T) {
-	st.build(1, 0, st.n-1, arr)
+func (st *SegmentTree[T]) Update(pos int, value T) {
+	st.update(1, 0, st.n-1, pos, value)
 }
 
-func (st *SegmentTree[T]) build(v, tl, tr int, arr []T) {
+func (st *SegmentTree[T]) update(v, tl, tr, pos int, value T) {
 	if tl == tr {
-		st.tree[v] = arr[tl]
+		st.tree[v] = value
 		return
 	}
+	tm := (tl + tr) / 2
+	if pos <= tm {
+		st.update(2*v, tl, tm, pos, value)
+	} else {
+		st.update(2*v+1, tm+1, tr, pos, value)
+	}
+	st.tree[v] = st.op(st.tree[2*v], st.tree[2*v+1])
 }
