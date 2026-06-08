@@ -11,6 +11,7 @@ import (
 	"github.com/code-stepan/BigDataStructures/fenwicktree"
 	"github.com/code-stepan/BigDataStructures/hashtable"
 	"github.com/code-stepan/BigDataStructures/heaps"
+	"github.com/code-stepan/BigDataStructures/segmenttree"
 	"github.com/code-stepan/BigDataStructures/trie"
 )
 
@@ -21,15 +22,17 @@ type task struct {
 
 var tasks = []task{
 	{"BST", demoBST},
+	{"B-дерево", demoBTree},
 	{"Bloom Filter", demoBloomFilter},
 	{"Trie", demoTrie},
 	{"Hash Table", demoHashTable},
 	{"Count-Min Sketch", demoCountMinSketch},
+	{"Дерево отрезков", demoSegmentTree},
+	{"Дерево Фенвика", demoFenwickTree},
 	{"Binary Heap", demoBinaryHeap},
 	{"Binomial Heap", demoBinomialHeap},
 	{"Эйлер / ДПФ", demoEuler},
-	// {"Z_n корни / FFT", demoZRoots},
-	{"Дерево Фенвика", demoFenwickTree},
+	{"Z_n корни / FFT", demoZRoots},
 }
 
 func main() {
@@ -80,6 +83,10 @@ func demoBST() {
 	fmt.Print("InOrder: ")
 	tree.InOrder(func(k int, v string) { fmt.Printf("%d(%s) ", k, v) })
 	fmt.Println()
+}
+
+func demoBTree() {
+	fmt.Println("TODO: demoBTree")
 }
 
 func demoBloomFilter() {
@@ -156,6 +163,61 @@ func demoCountMinSketch() {
 	for _, word := range []string{"apple", "banana", "cherry", "unknown"} {
 		fmt.Printf("%s: %d\n", word, cms.Count([]byte(word)))
 	}
+}
+
+func demoSegmentTree() {
+	n := 8
+	sum := func(a, b int) int { return a + b }
+	st := segmenttree.New(n, sum, 0)
+
+	values := []int{1, 3, 5, 7, 9, 11, 13, 15}
+	for i, v := range values {
+		st.Update(i, v)
+	}
+
+	fmt.Println("=== Дерево отрезков (сумма) ===")
+	fmt.Printf("Массив: %v\n", values)
+
+	fmt.Println("\nИнтервальные суммы:")
+	ranges := [][2]int{{0, 3}, {2, 5}, {0, 7}, {4, 7}}
+	for _, r := range ranges {
+		fmt.Printf("  sum[%d..%d] = %d\n", r[0], r[1], st.Query(r[0], r[1]))
+	}
+
+	fmt.Println("\nОбновление: установить значение 10 в позиции 3")
+	st.Update(3, 10)
+	fmt.Printf("  sum[0..3] = %d (ожидается 1+3+5+10 = 19)\n", st.Query(0, 3))
+	fmt.Printf("  sum[2..5] = %d (ожидается 5+10+9+11 = 35)\n", st.Query(2, 5))
+}
+
+func demoFenwickTree() {
+	n := 10
+	sum := func(a, b int) int { return a + b }
+	sub := func(a, b int) int { return a - b }
+	ft := fenwicktree.New(n, sum, sub, 0)
+
+	values := []int{1, 3, 5, 7, 9, 11, 13, 15, 17, 19}
+	for i, v := range values {
+		ft.Update(i, v)
+	}
+
+	fmt.Println("=== Дерево Фенвика (сумма) ===")
+	fmt.Printf("Массив: %v\n", values)
+
+	fmt.Println("\nПрефиксные суммы:")
+	for i := range n {
+		fmt.Printf("  sum[0..%d] = %d\n", i, ft.Query(i))
+	}
+
+	fmt.Println("\nИнтервальные суммы:")
+	ranges := [][2]int{{0, 4}, {2, 7}, {5, 9}, {0, 9}}
+	for _, r := range ranges {
+		fmt.Printf("  sum[%d..%d] = %d\n", r[0], r[1], ft.RangeQuery(r[0], r[1]))
+	}
+
+	fmt.Println("\nОбновление: установить значение 10 в позиции 3")
+	ft.Update(3, 10)
+	fmt.Printf("  sum[0..4] = %d (ожидается 1+3+5+10+9 = 28)\n", ft.RangeQuery(0, 4))
 }
 
 func demoBinaryHeap() {
@@ -259,6 +321,10 @@ func demoEuler() {
 	printVector("Обратное", euler.InverseDFT(euler.DFT(input)))
 }
 
+func demoZRoots() {
+	fmt.Println("TODO: demoZRoots")
+}
+
 func printMatrix(m [][]complex128) {
 	for _, row := range m {
 		for _, v := range row {
@@ -274,69 +340,4 @@ func printVector(label string, v []complex128) {
 		fmt.Printf("(%.4f+%.4fi) ", real(x), imag(x))
 	}
 	fmt.Println()
-}
-
-// func demoZRoots() {
-// 	for _, n := range []int{5, 7, 10, 14, 15} {
-// 		fmt.Printf("n=%d: HasPrimitiveRoot=%v", n, euler.HasPrimitiveRoot(n))
-// 		if g, ok := euler.FindPrimitiveRoot(n); ok {
-// 			fmt.Printf(", one root=%d, all=%v", g, euler.PrimitiveRootsModN(n))
-// 		}
-// 		fmt.Println()
-// 	}
-
-// 	n := 7
-// 	fmt.Printf("\n=== Вандрмонда %dx%d (через Z_%d корень) ===\n", n, n, n)
-// 	printMatrix(euler.VandermondeMatrix(n))
-
-// 	fmt.Printf("\n=== DFT + обратное ===\n")
-// 	input := make([]complex128, n)
-// 	for i := range input {
-// 		input[i] = complex(float64(i+1), 0)
-// 	}
-// 	printVector("Вход", input)
-// 	dftResult := euler.DFT(input)
-// 	printVector("DFT", dftResult)
-// 	printVector("Обратное", euler.InverseDFT(dftResult))
-
-// 	fmt.Printf("\n=== FFT (Cooley-Tukey) ===\n")
-// 	fftSize := 8
-// 	fftInput := make([]complex128, fftSize)
-// 	for i := range fftInput {
-// 		fftInput[i] = complex(float64(i+1), 0)
-// 	}
-// 	printVector("Вход", fftInput)
-// 	fftResult := euler.FFT(fftInput)
-// 	printVector("FFT", fftResult)
-// 	printVector("Обратное FFT", euler.InverseFFT(fftResult))
-// }
-
-func demoFenwickTree() {
-	n := 10
-	sum := func(a, b int) int { return a + b }
-	sub := func(a, b int) int { return a - b }
-	ft := fenwicktree.New(n, sum, sub, 0)
-
-	values := []int{1, 3, 5, 7, 9, 11, 13, 15, 17, 19}
-	for i, v := range values {
-		ft.Update(i, v)
-	}
-
-	fmt.Println("=== Дерево Фенвика (сумма) ===")
-	fmt.Printf("Массив: %v\n", values)
-
-	fmt.Println("\nПрефиксные суммы:")
-	for i := range n {
-		fmt.Printf("  sum[0..%d] = %d\n", i, ft.Query(i))
-	}
-
-	fmt.Println("\nИнтервальные суммы:")
-	ranges := [][2]int{{0, 4}, {2, 7}, {5, 9}, {0, 9}}
-	for _, r := range ranges {
-		fmt.Printf("  sum[%d..%d] = %d\n", r[0], r[1], ft.RangeQuery(r[0], r[1]))
-	}
-
-	fmt.Println("\nОбновление: установить значение 10 в позиции 3")
-	ft.Update(3, 10)
-	fmt.Printf("  sum[0..4] = %d (ожидается 1+3+5+10+9 = 28)\n", ft.RangeQuery(0, 4))
 }

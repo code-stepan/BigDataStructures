@@ -72,7 +72,7 @@ func (h *BinaryHeap[K, V]) ExtractMax() (K, V, bool) {
 // siftUp (просеивание вверх) — перемещает элемент вверх по дереву,
 // пока он не станет меньше родителя или не дойдёт до корня.
 // Используется при вставке нового элемента.
-func (h BinaryHeap[K, V]) siftUp(i int) {
+func (h *BinaryHeap[K, V]) siftUp(i int) {
 	for i > 0 {
 		parent := (i - 1) / 2
 		if h.compare(h.data[i].key, h.data[parent].key) <= 0 {
