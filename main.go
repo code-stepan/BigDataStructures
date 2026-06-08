@@ -231,12 +231,12 @@ func demoEuler() {
 	nRoots := 6
 	fmt.Printf("\n=== Корни степени %d ===\n", nRoots)
 	for i, r := range euler.AllRootsOfUnity(nRoots) {
-		fmt.Printf("  z_%d = %.4f + %.4fi\n", i, r.Re, r.Im)
+		fmt.Printf("  z_%d = %.4f + %.4fi\n", i, real(r), imag(r))
 	}
 
 	fmt.Printf("\n=== Первобразные корни ===\n")
 	for i, r := range euler.PrimitiveRootsOfUnity(nRoots) {
-		fmt.Printf("  ζ_%d = %.4f + %.4fi\n", i, r.Re, r.Im)
+		fmt.Printf("  ζ_%d = %.4f + %.4fi\n", i, real(r), imag(r))
 	}
 
 	matSize := 4
@@ -247,28 +247,28 @@ func demoEuler() {
 	printMatrix(euler.InverseVandermondeMatrix(matSize))
 
 	fmt.Printf("\n=== ДПФ (прямое + обратное) ===\n")
-	input := make([]euler.Complex, matSize)
+	input := make([]complex128, matSize)
 	for i := range input {
-		input[i] = euler.NewComplex(float64(i+1), 0)
+		input[i] = complex(float64(i+1), 0)
 	}
 	printVector("Вход", input)
 	printVector("ДПФ", euler.DFT(input))
 	printVector("Обратное", euler.InverseDFT(euler.DFT(input)))
 }
 
-func printMatrix(m [][]euler.Complex) {
+func printMatrix(m [][]complex128) {
 	for _, row := range m {
 		for _, v := range row {
-			fmt.Printf("(%6.3f+%6.3fi) ", v.Re, v.Im)
+			fmt.Printf("(%6.3f+%6.3fi) ", real(v), imag(v))
 		}
 		fmt.Println()
 	}
 }
 
-func printVector(label string, v []euler.Complex) {
+func printVector(label string, v []complex128) {
 	fmt.Printf("%12s: ", label)
 	for _, x := range v {
-		fmt.Printf("(%.4f+%.4fi) ", x.Re, x.Im)
+		fmt.Printf("(%.4f+%.4fi) ", real(x), imag(x))
 	}
 	fmt.Println()
 }

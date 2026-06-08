@@ -2,62 +2,14 @@ package euler
 
 import (
 	"math"
+	"math/cmplx"
 )
-
-type Complex struct {
-	Re float64
-	Im float64
-}
-
-func NewComplex(re, im float64) Complex {
-	return Complex{Re: re, Im: im}
-}
-
-func (c Complex) Add(other Complex) Complex {
-	return Complex{Re: c.Re + other.Re, Im: c.Im + other.Im}
-}
-
-func (c Complex) Sub(other Complex) Complex {
-	return Complex{Re: c.Re - other.Re, Im: c.Im - other.Im}
-}
-
-func (c Complex) Mul(other Complex) Complex {
-	return Complex{
-		Re: c.Re*other.Re - c.Im*other.Im,
-		Im: c.Re*other.Im + c.Im*other.Re,
-	}
-}
-
-func (c Complex) Scale(s float64) Complex {
-	return Complex{Re: c.Re * s, Im: c.Im * s}
-}
-
-func (c Complex) Conjugate() Complex {
-	return Complex{Re: c.Re, Im: -c.Im}
-}
-
-func (c Complex) Abs() float64 {
-	return math.Sqrt(c.Re*c.Re + c.Im*c.Im)
-}
 
 func gcd(a, b int) int {
 	for b != 0 {
 		a, b = b, a%b
 	}
 	return a
-}
-
-func EulerPhiByDefinition(n int) int {
-	if n <= 0 {
-		return 0
-	}
-	count := 0
-	for k := 1; k <= n; k++ {
-		if gcd(k, n) == 1 {
-			count++
-		}
-	}
-	return count
 }
 
 func Factorize(n int) map[int]int {
@@ -73,6 +25,19 @@ func Factorize(n int) map[int]int {
 		factors[temp]++
 	}
 	return factors
+}
+
+func EulerPhiByDefinition(n int) int {
+	if n <= 0 {
+		return 0
+	}
+	count := 0
+	for k := 1; k <= n; k++ {
+		if gcd(k, n) == 1 {
+			count++
+		}
+	}
+	return count
 }
 
 func EulerPhiByFactorization(n int) int {
@@ -93,25 +58,24 @@ func EulerPhiByDFT(n int) float64 {
 	sum := 0.0
 	for k := 1; k <= n; k++ {
 		g := gcd(k, n)
-		angle := 2.0 * math.Pi * float64(k) / float64(n)
-		sum += float64(g) * math.Cos(angle)
+		w := cmplx.Exp(complex(0, 2*math.Pi*float64(k)/float64(n)))
+		sum += float64(g) * real(w)
 	}
 	return math.Round(sum)
 }
 
-func AllRootsOfUnity(n int) []Complex {
-	roots := make([]Complex, n)
-	for k := 0; k < n; k++ {
-		angle := 2.0 * math.Pi * float64(k) / float64(n)
-		roots[k] = NewComplex(math.Cos(angle), math.Sin(angle))
+func AllRootsOfUnity(n int) []complex128 {
+	roots := make([]complex128, n)
+	for k := range n {
+		roots[k] = cmplx.Exp(complex(0, 2*math.Pi*float64(k)/float64(n)))
 	}
 	return roots
 }
 
-func PrimitiveRootsOfUnity(n int) []Complex {
+func PrimitiveRootsOfUnity(n int) []complex128 {
 	allRoots := AllRootsOfUnity(n)
-	primitive := make([]Complex, 0)
-	for k := 0; k < n; k++ {
+	primitive := make([]complex128, 0)
+	for k := range n {
 		if gcd(k, n) == 1 {
 			primitive = append(primitive, allRoots[k])
 		}
@@ -119,81 +83,47 @@ func PrimitiveRootsOfUnity(n int) []Complex {
 	return primitive
 }
 
-func complexPower(base Complex, exp int) Complex {
-	if exp < 0 {
-		posResult := complexPower(base, -exp)
-		return posResult.Conjugate()
-	}
-	result := NewComplex(1, 0)
-	for exp > 0 {
-		if exp%2 == 1 {
-			result = result.Mul(base)
-		}
-		base = base.Mul(base)
-		exp /= 2
-	}
-	return result
-}
-
-func VandermondeMatrix(n int) [][]Complex {
-	w := NewComplex(math.Cos(2*math.Pi/float64(n)), math.Sin(2*math.Pi/float64(n)))
-	mat := make([][]Complex, n)
-	for i := 0; i < n; i++ {
-		mat[i] = make([]Complex, n)
-		for j := 0; j < n; j++ {
-			mat[i][j] = complexPower(w, i*j)
+func VandermondeMatrix(n int) [][]complex128 {
+	w := cmplx.Exp(complex(0, 2*math.Pi/float64(n)))
+	mat := make([][]complex128, n)
+	for i := range n {
+		mat[i] = make([]complex128, n)
+		for j := range n {
+			mat[i][j] = cmplx.Pow(w, complex(float64(i*j), 0))
 		}
 	}
 	return mat
 }
 
-func InverseVandermondeMatrix(n int) [][]Complex {
-	w := NewComplex(math.Cos(2*math.Pi/float64(n)), math.Sin(2*math.Pi/float64(n)))
-	inv := make([][]Complex, n)
-	for i := 0; i < n; i++ {
-		inv[i] = make([]Complex, n)
-		for j := 0; j < n; j++ {
-			inv[i][j] = complexPower(w, -i*j).Scale(1.0 / float64(n))
+func InverseVandermondeMatrix(n int) [][]complex128 {
+	w := cmplx.Exp(complex(0, 2*math.Pi/float64(n)))
+	inv := make([][]complex128, n)
+	for i := range n {
+		inv[i] = make([]complex128, n)
+		for j := range n {
+			inv[i][j] = cmplx.Pow(w, complex(float64(-i*j), 0)) / complex(float64(n), 0)
 		}
 	}
 	return inv
 }
 
-func multiplyMatrixVector(mat [][]Complex, vec []Complex) []Complex {
+func multiplyMatrixVector(mat [][]complex128, vec []complex128) []complex128 {
 	n := len(mat)
-	result := make([]Complex, n)
-	for i := 0; i < n; i++ {
-		sum := NewComplex(0, 0)
-		for j := 0; j < n; j++ {
-			sum = sum.Add(mat[i][j].Mul(vec[j]))
+	result := make([]complex128, n)
+	for i := range n {
+		sum := complex(0, 0)
+		for j := range n {
+			sum += mat[i][j] * vec[j]
 		}
 		result[i] = sum
 	}
 	return result
 }
 
-func DFT(x []Complex) []Complex {
-	n := len(x)
-	mat := VandermondeMatrix(n)
-	return multiplyMatrixVector(mat, x)
+func DFT(x []complex128) []complex128 {
+	return multiplyMatrixVector(VandermondeMatrix(len(x)), x)
 }
 
-func InverseDFT(x []Complex) []Complex {
-	n := len(x)
-	mat := InverseVandermondeMatrix(n)
-	return multiplyMatrixVector(mat, x)
+func InverseDFT(X []complex128) []complex128 {
+	return multiplyMatrixVector(InverseVandermondeMatrix(len(X)), X)
 }
-
-// func Divisors(n int ) []int {
-// 	divs := []int{}
-// 	for i := 1; i*i <= n; i++ {
-// 		if n%i == 0 {
-// 			divs = append(divs, i)
-// 			if i != n/i {
-// 				divs = append(divs, n/i)
-// 			}
-// 		}
-// 	}
-// 	sort.Ints(divs)
-// 	return divs
-// }
