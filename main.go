@@ -27,6 +27,7 @@ var tasks = []task{
 	{"Binary Heap", demoBinaryHeap},
 	{"Binomial Heap", demoBinomialHeap},
 	{"Эйлер / ДПФ", demoEuler},
+	{"Z_n корни / FFT", demoZRoots},
 }
 
 func main() {
@@ -271,4 +272,39 @@ func printVector(label string, v []complex128) {
 		fmt.Printf("(%.4f+%.4fi) ", real(x), imag(x))
 	}
 	fmt.Println()
+}
+
+func demoZRoots() {
+	for _, n := range []int{5, 7, 10, 14, 15} {
+		fmt.Printf("n=%d: HasPrimitiveRoot=%v", n, euler.HasPrimitiveRoot(n))
+		if g, ok := euler.FindPrimitiveRoot(n); ok {
+			fmt.Printf(", one root=%d, all=%v", g, euler.PrimitiveRootsModN(n))
+		}
+		fmt.Println()
+	}
+
+	n := 7
+	fmt.Printf("\n=== Вандрмонда %dx%d (через Z_%d корень) ===\n", n, n, n)
+	printMatrix(euler.VandermondeMatrix(n))
+
+	fmt.Printf("\n=== DFT + обратное ===\n")
+	input := make([]complex128, n)
+	for i := range input {
+		input[i] = complex(float64(i+1), 0)
+	}
+	printVector("Вход", input)
+	dftResult := euler.DFT(input)
+	printVector("DFT", dftResult)
+	printVector("Обратное", euler.InverseDFT(dftResult))
+
+	fmt.Printf("\n=== FFT (Cooley-Tukey) ===\n")
+	fftSize := 8
+	fftInput := make([]complex128, fftSize)
+	for i := range fftInput {
+		fftInput[i] = complex(float64(i+1), 0)
+	}
+	printVector("Вход", fftInput)
+	fftResult := euler.FFT(fftInput)
+	printVector("FFT", fftResult)
+	printVector("Обратное FFT", euler.InverseFFT(fftResult))
 }
