@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"math/cmplx"
 	"strconv"
 
 	"github.com/code-stepan/BigDataStructures/bloomfilter"
 	"github.com/code-stepan/BigDataStructures/bst"
+	"github.com/code-stepan/BigDataStructures/btree"
 	"github.com/code-stepan/BigDataStructures/countminsketch"
 	"github.com/code-stepan/BigDataStructures/euler"
 	"github.com/code-stepan/BigDataStructures/fenwicktree"
@@ -86,7 +88,35 @@ func demoBST() {
 }
 
 func demoBTree() {
-	fmt.Println("TODO: demoBTree")
+	tree := btree.New[int, string](3, func(a, b int) int { return a - b })
+
+	for _, v := range []int{50, 30, 70, 20, 40, 60, 80, 10, 25, 35} {
+		tree.Insert(v, fmt.Sprintf("val_%d", v))
+	}
+
+	fmt.Print("InOrder после вставки: ")
+	tree.InOrder(func(k int, v string) { fmt.Printf("%d(%s) ", k, v) })
+	fmt.Println()
+
+	if val, ok := tree.Get(40); ok {
+		fmt.Println("Найдено 40:", val)
+	}
+
+	fmt.Println("Удаление 50:", tree.Delete(50))
+	fmt.Println("Удаление 50 повторно:", tree.Delete(50))
+
+	fmt.Print("InOrder после удаления 50: ")
+	tree.InOrder(func(k int, v string) { fmt.Printf("%d(%s) ", k, v) })
+	fmt.Println()
+
+	if _, ok := tree.Get(50); !ok {
+		fmt.Println("Поиск удалённого 50: не найден")
+	}
+
+	tree.Clear()
+	if _, ok := tree.Get(30); !ok {
+		fmt.Println("После Clear, поиск 30: не найден")
+	}
 }
 
 func demoBloomFilter() {
@@ -322,7 +352,88 @@ func demoEuler() {
 }
 
 func demoZRoots() {
-	fmt.Println("TODO: demoZRoots")
+	n := 7
+	fmt.Printf("=== Первобразные корни из 1 в Z_%d ===\n", n)
+
+	if euler.HasPrimitiveRoot(n) {
+		fmt.Printf("Z_%d имеет первобразные корни\n", n)
+		phi := euler.EulerPhiByFactorization(n)
+		fmt.Printf("φ(%d) = %d\n", n, phi)
+
+		g, _ := euler.FindPrimitiveRoot(n)
+		fmt.Printf("Первый первобразный корень: %d\n", g)
+		fmt.Printf("Проверка: %d^%d mod %d = %d\n", g, phi, n, euler.ModPow(g, phi, n))
+
+		for _, p := range euler.Factorize(phi) {
+			fmt.Printf("  %d^%d mod %d = %d (≠ 1)\n", g, phi/p, n, euler.ModPow(g, phi/p, n))
+		}
+
+		roots := euler.AllPrimitiveRootsInZn(n)
+		fmt.Printf("Все первобразные корни: %v\n", roots)
+		fmt.Printf("Количество: φ(φ(%d)) = φ(%d) = %d\n", n, phi, len(roots))
+	} else {
+		fmt.Printf("Z_%d не имеет первобразных корней\n", n)
+	}
+
+	matSize := 4
+	fmt.Printf("\n=== Вандрмонда %dx%d (через первобразный корень Z_%d) ===\n", matSize, matSize, matSize)
+	if mat, ok := euler.VandermondeMatrixFromRoot(matSize); ok {
+		printMatrix(mat)
+	} else {
+		fmt.Printf("Z_%d не имеет первобразного корня, матрица не построена\n", matSize)
+	}
+
+	fmt.Printf("\n=== Обратная Вандрмонда ===\n")
+	if inv, ok := euler.InverseVandermondeMatrixFromRoot(matSize); ok {
+		printMatrix(inv)
+	}
+
+	fftSize := 8
+	input := make([]complex128, fftSize)
+	for i := range input {
+		input[i] = complex(float64(i+1), 0)
+	}
+
+	fmt.Printf("\n=== ДПФ vs БПФ (n=%d) ===\n", fftSize)
+	printVector("Вход", input)
+
+	dftResult := euler.DFT(input)
+	printVector("ДПФ (матрица)", dftResult)
+
+	fftResult := euler.FFT(input)
+	printVector("БПФ (Cooley-Tukey)", fftResult)
+
+	fmt.Printf("Совпадают: %v\n", vectorsEqual(dftResult, fftResult))
+
+	ifftResult := euler.InverseFFT(fftResult)
+	printVector("Обратная БПФ", ifftResult)
+
+	dftInv := euler.InverseDFT(dftResult)
+	fmt.Printf("Обратная ДПФ == Обратная БПФ: %v\n", vectorsEqual(dftInv, ifftResult))
+
+	nonPow2Size := 6
+	input6 := make([]complex128, nonPow2Size)
+	for i := range input6 {
+		input6[i] = complex(float64(i+1), 0)
+	}
+	fmt.Printf("\n=== БПФ для n=%d (не степень двойки, fallback на ДПФ) ===\n", nonPow2Size)
+	printVector("Вход", input6)
+	fft6 := euler.FFT(input6)
+	dft6 := euler.DFT(input6)
+	printVector("БПФ", fft6)
+	fmt.Printf("Совпадает с ДПФ: %v\n", vectorsEqual(fft6, dft6))
+}
+
+func vectorsEqual(a, b []complex128) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if cmplx.Abs(a[i]-b[i]) > 1e-9 {
+			return false
+		}
+	}
+	return true
 }
 
 func printMatrix(m [][]complex128) {
